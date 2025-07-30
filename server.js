@@ -4,16 +4,16 @@ const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 const path = require("path");
 const bodyParser = require("body-parser");
-const { Configuration, OpenAIApi } = require("openai");
 
 require("dotenv").config();
+const { Configuration, OpenAIApi } = require("openai");
 const openai = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.json());
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 io.on("connection", (socket) => {
@@ -24,7 +24,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("chat message", (data) => {
-    io.emit("chat message", { user: data.user, text: data.text });
+    io.emit("chat message", data);
   });
 
   socket.on("disconnect", () => {
@@ -37,11 +37,14 @@ app.post("/api/askbot", async (req, res) => {
   try {
     const result = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
-      messages: [{ role: "system", content: "Reply like a funny, sarcastic, and silly AI chatbot" }, { role: "user", content: prompt }],
+      messages: [
+        { role: "system", content: "Reply like a funny, sarcastic, and silly AI chatbot" },
+        { role: "user", content: prompt }
+      ]
     });
     res.json({ reply: result.data.choices[0].message.content });
   } catch (err) {
-    res.json({ reply: "Oops! I'm too tired to respond 💤" });
+    res.json({ reply: "Oops! I’m sleeping 😴" });
   }
 });
 
