@@ -80,7 +80,10 @@
     </div>
   </div>
 
+  <!-- ✅ Socket.IO client script -->
+  <script src="/socket.io/socket.io.js"></script>
   <script>
+    const socket = io();
     const messagesDiv = document.getElementById('messages');
     const input = document.getElementById('messageInput');
 
@@ -99,13 +102,16 @@
       const msg = input.value.trim();
       if (!msg) return;
 
-      const msgElem = document.createElement('div');
-      msgElem.textContent = `${username}: ${msg}`;
-      messagesDiv.appendChild(msgElem);
-
+      socket.emit('chat message', `${username}: ${msg}`);
       input.value = '';
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
+
+    socket.on('chat message', function(msg) {
+      const msgElem = document.createElement('div');
+      msgElem.textContent = msg;
+      messagesDiv.appendChild(msgElem);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
   </script>
 </body>
 </html>
