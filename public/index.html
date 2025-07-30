@@ -54,6 +54,7 @@
       color: white;
       font-size: 14px;
       margin-bottom: 10px;
+      height: 300px;
     }
 
     .message {
@@ -94,17 +95,6 @@
     .input-area button:hover {
       background: #218838;
     }
-
-    @media (max-height: 600px) {
-      body {
-        align-items: flex-start;
-        padding-top: 20px;
-      }
-
-      .chat-container {
-        height: 90vh;
-      }
-    }
   </style>
 </head>
 <body>
@@ -113,16 +103,18 @@
     <div id="messages"></div>
     <div class="input-area">
       <input type="text" id="messageInput" placeholder="Type your message..." />
-      <button onclick="sendMessage()">Send</button>
+      <button id="sendBtn">Send</button>
     </div>
   </div>
 
+  <!-- 🔌 Add Socket.IO script from server -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
 
     const messagesDiv = document.getElementById('messages');
     const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
 
     const username = getOrCreateUsername();
 
@@ -138,6 +130,7 @@
     function sendMessage() {
       const msg = input.value.trim();
       if (!msg) return;
+
       socket.emit('chat message', { user: username, text: msg });
       input.value = '';
     }
@@ -150,5 +143,10 @@
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
 
+    sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') sendMessage();
+    });
+  </script>
+</body>
+</html>
