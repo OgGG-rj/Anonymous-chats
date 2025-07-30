@@ -1,21 +1,16 @@
-// Connect to the socket server
 const socket = io();
 
-// Assign or retrieve a persistent random username
-let username = localStorage.getItem('anon_username');
+let username = localStorage.getItem('username');
 if (!username) {
-  const animals = ['🦊', '🐼', '🐸', '🐧', '🐨', '🐯', '🐵', '🦁', '🐶', '🐱'];
-  username = animals[Math.floor(Math.random() * animals.length)] + 'Anon' + Math.floor(Math.random() * 1000);
-  localStorage.setItem('anon_username', username);
+  username = "User" + Math.floor(Math.random() * 10000);
+  localStorage.setItem('username', username);
 }
 
-// DOM elements
-const form = document.querySelector('form');
-const input = document.getElementById('message');
+const form = document.getElementById('form');
+const input = document.getElementById('input');
 const messages = document.getElementById('messages');
 
-// Send message on form submit
-form.addEventListener('submit', function (e) {
+form.addEventListener('submit', (e) => {
   e.preventDefault();
   if (input.value.trim()) {
     socket.emit('chat message', { user: username, text: input.value.trim() });
@@ -23,11 +18,9 @@ form.addEventListener('submit', function (e) {
   }
 });
 
-// Listen for incoming messages
-socket.on('chat message', function (msg) {
-  const item = document.createElement('div');
-  item.classList.add('message-item');
-  item.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
+socket.on('chat message', (msg) => {
+  const item = document.createElement('li');
+  item.textContent = `${msg.user}: ${msg.text}`;
   messages.appendChild(item);
   messages.scrollTop = messages.scrollHeight;
 });
