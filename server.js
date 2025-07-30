@@ -1,69 +1,49 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
-const path = require('path');
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
+const path = require("path");
+const bodyParser = require("body-parser");
+const { Configuration, OpenAIApi } = require("openai");
 
-app.use(express.static(path.join(__dirname, 'public')));
+require("dotenv").config();
+const openai = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.use(express.static(path.join(__dirname, "public")));
+app.use(bodyParser.json());
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
-const MAX_MESSAGES = 100;
-let messageHistory = [];
-
-io.on('connection', (socket) => {
-  let user = '';
-
-  socket.on('user-joined', (username) => {
-    user = username;
-    io.emit('user-joined', username);
-
-    // Send past messages
-    messageHistory.forEach(msg => socket.emit('chat message', msg));
+io.on("connection", (socket) => {
+  let username = "Someone";
+  socket.on("join", (name) => {
+    username = name;
+    socket.broadcast.emit("system", `${username} joined the chat`);
   });
 
-  socket.on('chat message', ({ username, text }) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const msg = { username, text, timestamp };
-    messageHistory.push(msg);
-
-    if (messageHistory.length > MAX_MESSAGES) {
-      messageHistory.shift(); // Limit history
-    }
-
-    io.emit('chat message', msg);
-
-    // Optional: funny AI bot
-    if (text.includes('bot')) {
-      const botMsg = {
-        username: '🤖 Bot',
-        text: getFunnyReply(text),
-        timestamp: new Date().toLocaleTimeString()
-      };
-      messageHistory.push(botMsg);
-      io.emit('chat message', botMsg);
-    }
+  socket.on("chat message", (data) => {
+    io.emit("chat message", { user: data.user, text: data.text });
   });
 
-  socket.on('disconnect', () => {
-    if (user) io.emit('user-left', user);
+  socket.on("disconnect", () => {
+    socket.broadcast.emit("system", `${username} left the chat`);
   });
 });
 
-function getFunnyReply(input) {
-  const replies = [
-    "I'm not saying you're wrong, but you are.",
-    "Did someone say bot? I prefer the term ‘AI overlord’.",
-    "Beep boop. I'm smarter than your fridge!",
-    "Sorry, I can't help. I'm just a toaster.",
-    "Talk to me like I’m human. Just kidding, I don’t care."
-  ];
-  return replies[Math.floor(Math.random() * replies.length)];
-}
+app.post("/api/askbot", async (req, res) => {
+  const prompt = req.body.message;
+  try {
+    const result = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "system", content: "Reply like a funny, sarcastic, and silly AI chatbot" }, { role: "user", content: prompt }],
+    });
+    res.json({ reply: result.data.choices[0].message.content });
+  } catch (err) {
+    res.json({ reply: "Oops! I'm too tired to respond 💤" });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-  console.log('Listening on port ' + PORT);
-});
+http.listen(PORT, () => console.log("Listening on port " + PORT));
