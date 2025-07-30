@@ -2,18 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🐱 Anonymous Chatroom</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="chat-container">
     <h1>🐱 Anonymous Chatroom</h1>
+    
+    <div class="mode-select">
+      <label><input type="radio" name="mode" value="everyone" checked /> Everyone</label>
+      <label><input type="radio" name="mode" value="bot" /> Bot</label>
+    </div>
 
-    <select id="modeSelector">
-      <option value="everyone">🌍 Chat with Everyone</option>
-      <option value="bot">🤖 Chat with Bot</option>
-    </select>
+    <div class="username-area">
+      <input type="text" id="username" />
+      <button onclick="updateUsername()">Update</button>
+    </div>
 
     <div id="messages"></div>
     <div class="input-area">
