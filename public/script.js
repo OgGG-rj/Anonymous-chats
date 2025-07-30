@@ -1,78 +1,73 @@
 const socket = io();
-const messagesDiv = document.getElementById("messages");
-const input = document.getElementById("messageInput");
-const modeSelector = document.getElementById("modeSelector");
+const messagesDiv = document.getElementById('messages');
+const input = document.getElementById('messageInput');
+const modeSelector = document.querySelector('input[name="mode"]:checked');
+let currentMode = 'everyone';
 
-let username = getOrCreateUsername();
-let userColor = getColorForUsername(username);
+let username = localStorage.getItem('anon_username') || generateUsername();
+let userColor = localStorage.getItem('anon_color') || randomColor();
 
-// Show join message
-socket.emit("join", username);
+document.getElementById('username').value = username;
 
-function getOrCreateUsername() {
-  let name = localStorage.getItem("anon_username");
-  if (!name) {
-    const emojis = ['😺','🦊','🐸','🐵','🐯','🦄','🐙'];
-    name = emojis[Math.floor(Math.random() * emojis.length)] + " User" + Math.floor(Math.random() * 1000);
-    localStorage.setItem("anon_username", name);
-  }
+function generateUsername() {
+  const name = 'User' + Math.floor(Math.random() * 10000);
+  localStorage.setItem('anon_username', name);
   return name;
 }
 
-function getColorForUsername(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const color = `hsl(${hash % 360}, 60%, 70%)`;
+function randomColor() {
+  const color = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+  localStorage.setItem('anon_color', color);
   return color;
 }
 
+function updateUsername() {
+  const newName = document.getElementById('username').value.trim();
+  if (newName) {
+    username = newName;
+    localStorage.setItem('anon_username', username);
+    socket.emit('join', username);
+  }
+}
+
 function sendMessage() {
-  const text = input.value.trim();
-  if (!text) return;
+  const msg = input.value.trim();
+  if (!msg) return;
 
-  const mode = modeSelector.value;
+  const mode = document.querySelector('input[name="mode"]:checked').value;
 
-  if (mode === "bot") {
-    addMessage(username, text, true);
-    fetch("/api/askbot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text })
+  if (mode === 'bot') {
+    fetch('/api/askbot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg })
     })
     .then(res => res.json())
     .then(data => {
-      addMessage("🤖 Bot", data.reply, true);
+      addMessage({ user: '🤖 Bot', text: data.reply, color: '#ffaa00' });
     });
   } else {
-    socket.emit("chat message", { user: username, text });
+    socket.emit('chat message', { user: username, text: msg, color: userColor });
   }
 
-  input.value = "";
+  input.value = '';
 }
 
-socket.on("chat message", (data) => {
-  addMessage(data.user, data.text);
-});
-
-socket.on("system", (msg) => {
-  addSystemMessage(msg);
-});
-
-function addMessage(user, text, local = false) {
-  const time = new Date().toLocaleTimeString();
-  const div = document.createElement("div");
-  div.innerHTML = `<strong style="color:${local ? '#6cf' : getColorForUsername(user)}">${user}</strong>: ${text} <span style="color:gray;font-size:11px;">${time}</span>`;
-  messagesDiv.appendChild(div);
+function addMessage(data) {
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const msgElem = document.createElement('div');
+  msgElem.innerHTML = `<span style="color:${data.color || '#fff'};"><strong>${data.user}</strong></span> <small>[${time}]</small>: ${data.text}`;
+  messagesDiv.appendChild(msgElem);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-function addSystemMessage(msg) {
-  const div = document.createElement("div");
-  div.style.color = "gray";
-  div.style.fontStyle = "italic";
+socket.on('chat message', addMessage);
+socket.on('system', (msg) => {
+  const div = document.createElement('div');
+  div.className = 'system';
   div.textContent = msg;
   messagesDiv.appendChild(div);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
+});
+
+socket.emit('join', username);
