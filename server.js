@@ -4,10 +4,11 @@ const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 const path = require("path");
 const bodyParser = require("body-parser");
-
 require("dotenv").config();
-const { Configuration, OpenAIApi } = require("openai");
-const openai = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
+
+const { OpenAI } = require("openai"); // ✅ v4 style
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); // ✅ no Configuration class
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.json());
@@ -35,15 +36,16 @@ io.on("connection", (socket) => {
 app.post("/api/askbot", async (req, res) => {
   const prompt = req.body.message;
   try {
-    const result = await openai.createChatCompletion({
+    const result = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "Reply like a funny, sarcastic, and silly AI chatbot" },
         { role: "user", content: prompt }
       ]
     });
-    res.json({ reply: result.data.choices[0].message.content });
+    res.json({ reply: result.choices[0].message.content });
   } catch (err) {
+    console.error(err);
     res.json({ reply: "Oops! I’m sleeping 😴" });
   }
 });
